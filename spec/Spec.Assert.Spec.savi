@@ -60,3 +60,12 @@
     assert error: map["example"]!
 
     assert error: _MaybeError.yes!
+
+  :it "can be called from another type that holds the spec context"
+    _OtherTypeThatCanAssert.new(@ctx)
+
+:class _OtherTypeThatCanAssert
+  :is Spec.Context.Holder
+  :let ctx Spec.Context
+  :new (@ctx)
+  :fun assert_something: assert: True

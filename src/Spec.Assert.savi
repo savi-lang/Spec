@@ -9,11 +9,11 @@
   :fun print_failure(env Env) None
 
   :fun non condition(
-    spec Spec
+    caller Spec.Context.Holder
     success Bool
-    pos SourceCodePosition = source_code_position_of_argument spec
+    pos SourceCodePosition = source_code_position_of_argument caller
   )
-    ctx = spec.ctx
+    ctx = caller.ctx
     assert = Spec.Assert.Condition.new(
       ctx.spec
       ctx.example
@@ -23,14 +23,14 @@
     ctx.process.enqueue(assert)
 
   :fun non relation(
-    spec Spec
+    caller Spec.Context.Holder
     op String
     lhs Any'box
     rhs Any'box
     success Bool
-    pos SourceCodePosition = source_code_position_of_argument spec
+    pos SourceCodePosition = source_code_position_of_argument caller
   )
-    ctx = spec.ctx
+    ctx = caller.ctx
     assert = Spec.Assert.Relation.new(
       ctx.spec
       ctx.example
@@ -43,14 +43,14 @@
     ctx.process.enqueue(assert)
 
   :fun non type_relation(
-    spec Spec
+    caller Spec.Context.Holder
     op String
     lhs Any'box
     rhs String
     success Bool
-    pos SourceCodePosition = source_code_position_of_argument spec
+    pos SourceCodePosition = source_code_position_of_argument caller
   )
-    ctx = spec.ctx
+    ctx = caller.ctx
     assert = Spec.Assert.TypeRelation.new(
       ctx.spec
       ctx.example
@@ -63,12 +63,12 @@
     ctx.process.enqueue(assert)
 
   :fun non has_error(
-    spec Spec
+    caller Spec.Context.Holder
     has_error Bool
     expects_error Bool
-    pos SourceCodePosition = source_code_position_of_argument spec
+    pos SourceCodePosition = source_code_position_of_argument caller
   )
-    ctx = spec.ctx
+    ctx = caller.ctx
     assert = Spec.Assert.HasError.new(
       ctx.spec
       ctx.example

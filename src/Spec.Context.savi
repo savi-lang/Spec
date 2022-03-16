@@ -4,3 +4,6 @@
   :let spec String
   :let example String
   :new (@env, @process, @spec, @example)
+
+:trait box Spec.Context.Holder
+  :fun ctx Spec.Context
