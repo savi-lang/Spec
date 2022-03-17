@@ -7,7 +7,7 @@
   :new (@name)
 
 :class Spec.Status.ForExample
-  :let events: Array(Spec.Event).new
+  :let events: Array(Spec.Assert).new
   :var events_reported USize: 0
   :let name String
   :var ended Bool: False
