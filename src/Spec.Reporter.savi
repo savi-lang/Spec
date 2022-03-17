@@ -3,7 +3,7 @@
   :fun ref spec_ended(spec String): None
   :fun ref example_began(spec String, example String): None
   :fun ref example_ended(spec String, example String, skip Bool): None
-  :fun ref event(spec String, example String, event Spec.Event): None
+  :fun ref event(spec String, example String, event Spec.Assert): None
 
 :class Spec.Reporter.Dots
   :is Spec.Reporter
@@ -16,7 +16,7 @@
   :fun ref example_began(spec String, example String)
     @env.err.write(" ")
 
-  :fun ref event(spec String, example String, event Spec.Event)
+  :fun ref event(spec String, example String, event Spec.Assert)
     if event.success (
       @env.err.write(".")
     |
@@ -45,18 +45,11 @@
   :fun ref example_ended(spec String, example String, skip Bool)
     if skip (@env.err.print(" SKIP") | @env.err.print(" OK"))
 
-  :fun ref event(spec String, example String, event Spec.Event)
+  :fun ref event(spec String, example String, event Spec.Assert)
     if event.success (
       @env.err.write(".")
     |
-      try (
-        event.assert.as!(Spec.Assert).print_failure(@env)
-      |
-        @env.err.write("\n")
-        @env.err.write(Inspect[event.pos.row + 1])
-        @env.err.write(": FAIL: ")
-        @env.err.print(event.pos.string)
-      )
+      event.print_failure(@env)
     )
 
 :class Spec.Reporter.Linear
@@ -71,7 +64,7 @@
   :fun ref spec_ended(spec String): @_changed
   :fun ref example_began(spec String, example String): @_changed
   :fun ref example_ended(spec String, example String, skip Bool): @_changed
-  :fun ref event(spec String, example String, event Spec.Event): @_changed
+  :fun ref event(spec String, example String, event Spec.Assert): @_changed
 
   :fun ref _changed None // TODO: be able to infer return type for maybe-recursive functions
     // If no spec and example are selected for linear reporting, pick them now.
