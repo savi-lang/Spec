@@ -61,11 +61,27 @@
 
     assert error: _MaybeError.yes!
 
-  :it "can be called from another type that holds the spec context"
-    _OtherTypeThatCanAssert.new(@ctx)
+  :it "can be called from a class that holds the spec context"
+    class = _ClassThatCanAssert.new(@ctx)
+    class.assert_something
 
-:class _OtherTypeThatCanAssert
+  :it "can be called asynchronously from another actor with waiting"
+    @ctx.wait_for_action("actor finished 1")
+    @ctx.wait_for_action("actor finished 2")
+    actor = _ActorThatCanAssert.new(@ctx)
+    actor.assert_something
+    actor.finished_action("actor finished 1")
+    actor.finished_action("actor finished 2")
+
+:class _ClassThatCanAssert
   :is Spec.Context.Holder
   :let ctx Spec.Context
   :new (@ctx)
   :fun assert_something: assert: True
+
+:actor _ActorThatCanAssert
+  :is Spec.Context.Holder
+  :let ctx Spec.Context
+  :new (@ctx)
+  :be assert_something: assert: True
+  :be finished_action(action String): @ctx.finished_action(action)

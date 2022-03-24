@@ -4,12 +4,39 @@
   :var spec_count USize
   :let statuses: Map.Ordered(String, Spec.Status).new
 
+  :const timed_ping_seconds U64: 5
+  :const timeout_seconds U64: 30
+  :let _timer: _Timer.new(@)
+
   :new (@env, @spec_count)
-    @reporter = Spec.Reporter.Linear.new(@env, @statuses, Spec.Reporter.Full.new(@env))
+    @reporter = Spec.Reporter.Linear.new(@env, @statuses
+      Spec.Reporter.Full.new(@env, @statuses)
+    )
 
   :fun non run(env, runners Array(Spec.Run.Any)) // TODO: shouldn't need this indirection
     process = @new(env, runners.size)
     runners.each -> (runner | runner.run(process))
+
+  :be _timed_ping
+    @statuses.each -> (spec, spec_status |
+      spec_status.examples.each -> (example, example_status |
+        next unless example_status.is_waiting_to_end
+
+        @reporter.example_timed_ping(spec, example)
+      )
+    )
+
+  :be _timed_out
+    @statuses.each -> (spec, spec_status |
+      spec_status.examples.each -> (example, example_status |
+        next unless example_status.is_waiting_to_end
+
+        @reporter.example_timed_out(spec, example)
+        example_status._runner.dispose
+        _Log.fail(@env)
+      )
+    )
+    @overall_ended
 
   :be spec_began(spec String, expected_examples USize)
     // TODO: complain if spec is empty or duplicate
@@ -18,45 +45,65 @@
     @statuses[spec] = status
     @reporter.spec_began(spec)
 
+  :fun ref overall_began
+    @reporter.overall_began
+
+  :fun ref overall_ended
+    @reporter.overall_ended
+    @_timer.dispose
+
   :fun ref spec_ended(spec String)
     try (
       status = @statuses[spec]!
-      status.ended = True
+      status.is_ended = True
       status.examples.each -> (example, example_status |
-        if (example_status.ended.not) (
+        if example_status.is_ended.not (
           _Log.bug(@env, "spec_ended before all of its examples ended")
         )
       )
       @reporter.spec_ended(spec)
+
+      // If now all specs have ended, then we know we've ended overall.
+      if (@statuses.has_all -> (_, s | s.is_ended)) @overall_ended
     |
       _Log.bug(@env, "spec_ended before the spec_began")
     )
 
-  :be example_began(spec String, example String):
+  :be example_began(spec String, example String, runner _Runner.Any):
     // TODO: complain if example is empty or duplicate
     try (
-      @statuses[spec]!.examples[example] = Spec.Status.ForExample.new(example)
+      @statuses[spec]!.examples[example] =
+        Spec.Status.ForExample.new(example, runner)
       @reporter.example_began(spec, example)
     |
       _Log.bug(@env, "example_began before the spec_began")
     )
 
-  :be example_close(spec String, example String): @example_ended(spec, example)
+  :be example_close(spec String, example String)
+    try (
+      status = @statuses[spec]!.examples[example]!
+      status.is_synchronous_portion_ended = True
+      if status.is_ready_to_end @example_ended(spec, example)
+    |
+      _Log.bug(@env, "example_close before the example_began")
+    )
+
   :fun ref example_ended(spec String, example String)
     try (
       status = @statuses[spec]!
       example_status = status.examples[example]!
-      example_status.ended = True
-
-      if (
-        status.examples.size >= status.expected_examples
-        && status.examples.has_all -> (_, es | es.ended)
-      ) (
-        @spec_ended(spec)
-      )
+      example_status.is_ended = True
+      example_status._runner.dispose
 
       skip = example_status.events.size == 0
       @reporter.example_ended(spec, example, skip)
+
+      if (
+        status.examples.size >= status.expected_examples
+        && status.examples.has_all -> (_, es | es.is_ended)
+      ) (
+        @spec_ended(spec)
+      )
     |
       _Log.bug(@env, "example_ended before the example_began")
     )
@@ -69,8 +116,10 @@
     if !event.success _Log.fail(@env)
 
     try (
-      @statuses[spec]!.examples[example]!.events << event
+      status = @statuses[spec]!.examples[example]!
+      status.events << event
       @reporter.event(spec, example, event)
+      if status.is_ready_to_end @example_ended(spec, example)
     |
       _Log.bug(@env, "assert before the example_began and/or spec_began")
     )

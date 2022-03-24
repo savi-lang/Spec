@@ -1,0 +1,30 @@
+:actor _Runner(A Spec)
+  :is _Runner.Any
+  :let _example ReflectionFeatureOfType(A)
+
+  :new (env, process, @_example)
+    helper = Spec.Context.new(env, A.describes, @_example.name, process, @)
+    spec = A.new(helper)
+
+    process.example_began(A.describes, @_example.name, @)
+
+    called = @_example.maybe_call_mutator(spec)
+    if called.not (
+      _Log.bug(env, "failed to call a spec feature")
+    )
+
+    process.example_close(A.describes, @_example.name)
+
+:trait tag _Disposable
+  :be dispose
+
+:trait tag _Runner.Any
+  :let _disposables: Array(_Disposable).new
+  :be dispose_when_done(actor _Disposable)
+    @_disposables << actor
+
+  :be dispose
+    @_disposables.each -> (actor | actor.dispose)
+
+:actor _Runner.None
+  :is _Runner.Any

@@ -20,7 +20,7 @@
       success
       pos
     )
-    ctx.process.enqueue(assert)
+    ctx._process.enqueue(assert)
 
   :fun non relation(
     caller Spec.Context.Holder
@@ -40,7 +40,7 @@
       Inspect[lhs]
       Inspect[rhs]
     )
-    ctx.process.enqueue(assert)
+    ctx._process.enqueue(assert)
 
   :fun non type_relation(
     caller Spec.Context.Holder
@@ -60,7 +60,7 @@
       Inspect[lhs]
       rhs
     )
-    ctx.process.enqueue(assert)
+    ctx._process.enqueue(assert)
 
   :fun non has_error(
     caller Spec.Context.Holder
@@ -76,7 +76,7 @@
       pos
       expects_error
     )
-    ctx.process.enqueue(assert)
+    ctx._process.enqueue(assert)
 
   :fun file_and_line String
     line = Inspect[@pos.row + 1]
@@ -177,4 +177,18 @@
       @file_and_line
     ], "\n"))
 
+    None
+
+:class val Spec.Assert.WaitForAction
+  :is Spec.Assert
+  :let action String
+  :new val (@spec, @example, @action, @pos): @success = True
+  :fun print_failure(env Env)
+    None
+
+:class val Spec.Assert.FinishedAction
+  :is Spec.Assert
+  :let action String
+  :new val (@spec, @example, @action, @pos): @success = True
+  :fun print_failure(env Env)
     None
