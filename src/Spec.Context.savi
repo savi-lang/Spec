@@ -1,9 +1,29 @@
-:class val Spec.Context
-  :let env Env
-  :let process Spec.Process
-  :let spec String
-  :let example String
-  :new (@env, @process, @spec, @example)
-
 :trait box Spec.Context.Holder
   :fun ctx Spec.Context
+
+:class val Spec.Context
+  :let env Env
+  :let spec String
+  :let example String
+  :let _process Spec.Process
+  :let _runner _Runner.Any
+  :new (@env, @spec, @example, @_process, @_runner)
+
+  :fun wait_for_action(
+    action String
+    pos = source_code_position_of_argument action
+  )
+    @_process.enqueue(
+      Spec.Assert.WaitForAction.new(@spec, @example, action, pos)
+    )
+
+  :fun finished_action(
+    action String
+    pos = source_code_position_of_argument action
+  )
+    @_process.enqueue(
+      Spec.Assert.FinishedAction.new(@spec, @example, action, pos)
+    )
+
+  :fun dispose_when_done(actor)
+    @_runner.dispose_when_done(actor)

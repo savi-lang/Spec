@@ -1,14 +1,19 @@
 :trait Spec.Reporter
+  :fun ref overall_began: None
+  :fun ref overall_ended: None
   :fun ref spec_began(spec String): None
   :fun ref spec_ended(spec String): None
   :fun ref example_began(spec String, example String): None
   :fun ref example_ended(spec String, example String, skip Bool): None
+  :fun ref example_timed_ping(spec String, example String): None
+  :fun ref example_timed_out(spec String, example String): None
   :fun ref event(spec String, example String, event Spec.Assert): None
 
 :class Spec.Reporter.Dots
   :is Spec.Reporter
   :let env Env
-  :new (@env)
+  :let statuses Map.Ordered(String, Spec.Status)
+  :new (@env, @statuses)
 
   :fun ref spec_ended(spec String)
     @env.err.write(";")
@@ -30,7 +35,8 @@
 :class Spec.Reporter.Full
   :is Spec.Reporter
   :let env Env
-  :new (@env)
+  :let statuses Map.Ordered(String, Spec.Status)
+  :new (@env, @statuses)
 
   :fun ref spec_began(spec String)
     @env.err.print(spec)
@@ -52,19 +58,59 @@
       event.print_failure(@env)
     )
 
+  :fun ref example_timed_ping(spec String, example String)
+    try (
+      status = @statuses[spec]!.examples[example]!
+      status.each_waiting_action_event -> (event |
+        @env.out.write("\n    waiting for action: ")
+        @env.out.print(Inspect[event.action])
+        @env.out.print(event.file_and_line)
+      )
+    |
+      _Log.bug(@env, "no status for this example")
+    )
+
+  :fun ref example_timed_out(spec String, example String)
+    try (
+      status = @statuses[spec]!.examples[example]!
+      status.each_waiting_action_event -> (event |
+        @env.out.write("\n    Timed out waiting for action: ")
+        @env.out.print(Inspect[event.action])
+        @env.out.print(event.file_and_line)
+      )
+    |
+      _Log.bug(@env, "no status for this example")
+    )
+
+
 :class Spec.Reporter.Linear
+  :is Spec.Reporter
   :let env Env
-  :let statuses: Map.Ordered(String, Spec.Status).new
+  :let statuses Map.Ordered(String, Spec.Status)
   :let inner Spec.Reporter
   :var current_spec: ""
   :var current_example: ""
   :new (@env, @statuses, @inner)
 
+  :fun ref overall_began: @inner.overall_began
+  :fun ref overall_ended: @inner.overall_ended
   :fun ref spec_began(spec String): @_changed
   :fun ref spec_ended(spec String): @_changed
   :fun ref example_began(spec String, example String): @_changed
   :fun ref example_ended(spec String, example String, skip Bool): @_changed
   :fun ref event(spec String, example String, event Spec.Assert): @_changed
+
+  :fun ref example_timed_ping(spec String, example String)
+    @_changed
+    return unless (spec == @current_spec)
+    return unless (example == @current_example)
+    @inner.example_timed_ping(spec, example)
+
+  :fun ref example_timed_out(spec String, example String)
+    @_changed
+    return unless (spec == @current_spec)
+    return unless (example == @current_example)
+    @inner.example_timed_out(spec, example)
 
   :fun ref _changed None // TODO: be able to infer return type for maybe-recursive functions
     // If no spec and example are selected for linear reporting, pick them now.
@@ -82,7 +128,7 @@
   :fun ref _choose_next_spec Bool
     // Find the name of the first spec whose status is not yet reported.
     @statuses.each_until -> (spec, status |
-      if (status.reported.not) (
+      if (status.is_reported.not) (
         @current_spec = spec
         @current_example = ""
         @inner.spec_began(@current_spec)
@@ -97,7 +143,7 @@
     try (
       status = @statuses[@current_spec]!
       status.examples.each_until -> (example, example_status |
-        if (example_status.reported.not) (
+        if example_status.is_reported.not (
           @current_example = example
           @inner.example_began(@current_spec, @current_example)
           True
@@ -124,13 +170,15 @@
         example_status.events_reported += 1
       )
 
-      // If the example has finished, but has not yet been reported, report now.
-      if (example_status.ended && example_status.reported.not) (
-        skip = example_status.events.size == 0
-        @inner.example_ended(@current_spec, @current_example, skip)
-        example_status.reported = True
+      if example_status.is_ended (
+        // If the example has finished, but has not yet been reported, report now.
+        if example_status.is_reported.not (
+          skip = example_status.events.size == 0
+          @inner.example_ended(@current_spec, @current_example, skip)
+          example_status.is_reported = True
+        )
 
-        // Since we've finished reporting this example, look to pick up another.
+        // Since we've finished this example, look to pick up another.
         // We'll recurse into this function as many times as we can,
         // reporting as many consecutive examples for this spec as are complete.
         if @_choose_next_example @_report_examples_from_current
@@ -144,14 +192,14 @@
       status = @statuses[@current_spec]!
 
       // If the spec is finished, but we haven't reported, report it now.
-      if (status.ended && status.reported.not) (
+      if (status.is_ended && status.is_reported.not) (
         // Try to find an example not yet reported, and report it.
         // This call will recurse until all examples in the spec are reported.
         if @_choose_next_example @_report_examples_from_current
 
         // Now that all examples are reported, report the end of the spec.
         @inner.spec_ended(@current_spec)
-        status.reported = True
+        status.is_reported = True
 
         // Since we've finished reporting this spec, look to pick up another.
         // We'll recurse into this function as many times as we can,

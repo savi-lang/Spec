@@ -4,6 +4,13 @@
   :dependency Map v0
     :from "github:savi-lang/Map"
 
+  :dependency Time v0
+    :from "github:savi-lang/Time"
+
+  :dependency Timer v0
+    :from "github:savi-lang/Timer"
+    :depends on Time
+
 :manifest bin "spec"
   :copies Spec
   :sources "spec/*.savi"

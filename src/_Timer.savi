@@ -1,0 +1,19 @@
+:actor _Timer
+  :is Timer.Actor
+  :let timer Timer.Engine
+  :let process Spec.Process
+
+  :var elapsed_seconds U64: 0
+
+  :new(@process)
+    interval = Time.Duration.seconds(@process.timed_ping_seconds)
+    @timer = Timer.Engine.new(@, interval)
+
+  :fun ref timer_react @
+    @elapsed_seconds += @process.timed_ping_seconds
+    if (@elapsed_seconds < @process.timeout_seconds) (
+      @process._timed_ping
+    |
+      @process._timed_out
+    )
+    @
