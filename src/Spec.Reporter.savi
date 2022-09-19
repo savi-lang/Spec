@@ -33,6 +33,8 @@
   :is Spec.Reporter
   :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
+  :let failed_events: Array(Spec.Assert).new
+
   :new (@env, @statuses)
 
   :fun ref spec_began(spec String)
@@ -42,7 +44,7 @@
     @env.print_err("") // just a newline
 
   :fun ref example_began(spec String, example String)
-    @env.write_err("  \(example)")
+    @env.write_err("  \(example) ")
 
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
     msg = case (
@@ -52,11 +54,16 @@
     )
     @env.print_err(" \(msg)")
 
-  :fun ref event(spec String, example String, event Spec.Assert)
+    @failed_events.each -> (event |
+      @env.print_err(String.join(event.format_failure, "\n"))
+    )
+
+  :fun ref event(spec String, example String, event Spec.Assert) None
     if event.success (
       @env.write_err(".")
     |
-      @env.print_err(String.join(event.format_failure, "\n"))
+      @env.write_err("F")
+      @failed_events << event
     )
 
   :fun ref example_timed_ping(spec String, example String)

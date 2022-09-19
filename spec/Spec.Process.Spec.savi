@@ -34,7 +34,7 @@
   :be capture_report(err String, out String, exitcode I32)
     assert: exitcode == 0
     assert: out == ""
-    assert: err == "_SpecThatSucceeds\n  succeeds. OK\n\n"
+    assert: err == "_SpecThatSucceeds\n  succeeds . OK\n\n"
     @ctx.finished_action("capture.ok")
 
 :class _SpecThatFails
@@ -56,13 +56,13 @@
     assert: exitcode == 1
     assert: out == ""
     assert: err == <<<_SpecThatFails
-  fails
+  fails F FAIL
+
     FAIL: assert: False
 
     Expected to be True
 
     # Spec.Process.Spec.savi: 45
- FAIL
 
 >>>
 
