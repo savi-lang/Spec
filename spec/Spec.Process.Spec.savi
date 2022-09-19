@@ -1,0 +1,70 @@
+:class Spec.Process.Spec
+  :is Spec
+  :const describes: "Spec.Process"
+
+  :it "runs a spec that succeeds generates output"
+    @ctx.wait_for_action("capture.ok")
+    env = Spec.Env.capture(_SpecThatSucceeds.Capturer.new(@ctx))
+    process = Spec.Process.run(env, [
+      Spec.Run(_SpecThatSucceeds).from_spec_env(env)
+    ])
+
+  :it "runs a spec that fails and generates output"
+    @ctx.wait_for_action("capture.fail")
+    env = Spec.Env.capture(_SpecThatFails.Capturer.new(@ctx))
+    process = Spec.Process.run(env, [
+      Spec.Run(_SpecThatFails).from_spec_env(env)
+    ])
+
+
+:class _SpecThatSucceeds
+  :is Spec
+  :const describes: "_SpecThatSucceeds"
+
+  :it "succeeds"
+    assert: True
+
+:actor _SpecThatSucceeds.Capturer
+  :is Spec.Env.Capture.Notify
+  :is Spec.Context.Holder
+
+  :let ctx Spec.Context
+  :new (@ctx)
+
+  :be capture_report(err String, out String, exitcode I32)
+    assert: exitcode == 0
+    assert: out == ""
+    assert: err == "_SpecThatSucceeds\n  succeeds. OK\n\n"
+    @ctx.finished_action("capture.ok")
+
+:class _SpecThatFails
+  :is Spec
+  :const describes: "_SpecThatFails"
+
+  :it "fails"
+    assert: False
+
+
+:actor _SpecThatFails.Capturer
+  :is Spec.Env.Capture.Notify
+  :is Spec.Context.Holder
+
+  :let ctx Spec.Context
+  :new (@ctx)
+
+  :be capture_report(err String, out String, exitcode I32)
+    assert: exitcode == 1
+    assert: out == ""
+    assert: err == <<<_SpecThatFails
+  fails
+    FAIL: assert: False
+
+    Expected to be True
+
+    # Spec.Process.Spec.savi: 45
+ FAIL
+
+>>>
+
+    @ctx.finished_action("capture.fail")
+

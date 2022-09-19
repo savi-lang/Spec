@@ -2,7 +2,7 @@
   :fun ctx Spec.Context
 
 :class val Spec.Context
-  :let env Env
+  :let env Spec.Env
   :let spec String
   :let example String
   :let _process Spec.Process

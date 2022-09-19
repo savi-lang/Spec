@@ -11,39 +11,38 @@
 
 :class Spec.Reporter.Dots
   :is Spec.Reporter
-  :let env Env
+  :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
   :new (@env, @statuses)
 
   :fun ref spec_ended(spec String)
-    @env.err.write(";")
+    @env.write_err(";")
 
   :fun ref example_began(spec String, example String)
-    @env.err.write(" ")
+    @env.write_err(" ")
 
   :fun ref event(spec String, example String, event Spec.Assert)
     if event.success (
-      @env.err.write(".")
+      @env.write_err(".")
     |
-      @env.err.print("\nFAIL: \(spec) \(example)")
-      @env.err.print("  X \(event.pos.string)")
+      @env.print_err("\nFAIL: \(spec) \(example)")
+      @env.print_err("  X \(event.pos.string)")
     )
 
 :class Spec.Reporter.Full
   :is Spec.Reporter
-  :let env Env
+  :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
   :new (@env, @statuses)
 
   :fun ref spec_began(spec String)
-    @env.err.print(spec)
+    @env.print_err(spec)
 
   :fun ref spec_ended(spec String)
-    @env.err.print("") // just a newline
+    @env.print_err("") // just a newline
 
   :fun ref example_began(spec String, example String)
-    @env.err.write("  ")
-    @env.err.write(example)
+    @env.write_err("  \(example)")
 
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
     msg = case (
@@ -51,43 +50,43 @@
     | stats.passed_events > 0 | "OK"
     |                           "SKIP"
     )
-    @env.err.print(msg)
+    @env.print_err(" \(msg)")
 
   :fun ref event(spec String, example String, event Spec.Assert)
     if event.success (
-      @env.err.write(".")
+      @env.write_err(".")
     |
-      @env.err.print(String.join(event.format_failure, "\n"))
+      @env.print_err(String.join(event.format_failure, "\n"))
     )
 
   :fun ref example_timed_ping(spec String, example String)
     try (
       status = @statuses[spec]!.examples[example]!
       status.each_waiting_action_event -> (event |
-        @env.out.write("\n    waiting for action: ")
-        @env.out.print(Inspect[event.action])
-        @env.out.print(event.file_and_line)
+        @env.write_out("\n    waiting for action: ")
+        @env.print_out(Inspect[event.action])
+        @env.print_out(event.file_and_line)
       )
     |
-      _Log.bug(@env, "no status for this example")
+      @env.bug("no status for this example")
     )
 
   :fun ref example_timed_out(spec String, example String)
     try (
       status = @statuses[spec]!.examples[example]!
       status.each_waiting_action_event -> (event |
-        @env.out.write("\n    Timed out waiting for action: ")
-        @env.out.print(Inspect[event.action])
-        @env.out.print(event.file_and_line)
+        @env.write_out("\n    Timed out waiting for action: ")
+        @env.print_out(Inspect[event.action])
+        @env.print_out(event.file_and_line)
       )
     |
-      _Log.bug(@env, "no status for this example")
+      @env.bug("no status for this example")
     )
 
 
 :class Spec.Reporter.Linear
   :is Spec.Reporter
-  :let env Env
+  :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
   :let inner Spec.Reporter
   :var current_spec: ""
@@ -154,7 +153,7 @@
         )
       )
     |
-      _Log.bug(@env, "no status for current_spec")
+      @env.bug("no status for current_spec")
       False
     )
 
@@ -186,7 +185,7 @@
         if @_choose_next_example @_report_examples_from_current
       )
     |
-      _Log.bug(@env, "no status for current_example")
+      @env.bug("no status for current_example")
     )
 
   :fun ref _report_specs_from_current None // TODO: be able to infer return type for maybe-recursive functions
@@ -209,5 +208,5 @@
         if @_choose_next_spec @_report_specs_from_current
       )
     |
-      _Log.bug(@env, "no status for current_spec")
+      @env.bug("no status for current_spec")
     )
