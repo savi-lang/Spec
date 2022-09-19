@@ -4,7 +4,7 @@
   :let success Bool
   :let pos SourceCodePosition
 
-  :: The print_failure function will print a specific failure message \
+  :: The print_failure function will print a specific failure message
   :: for the different kinds of assertions.
   :fun print_failure(env Env) None
 
@@ -79,8 +79,8 @@
     ctx._process.enqueue(assert)
 
   :fun file_and_line String
-    line = Inspect[@pos.row + 1]
-    @indent(4, String.join(["# ", @pos.filename, ":", line]))
+    line = @pos.row + 1
+    @indent(4, "# \(@pos.filename): \(line.format.decimal)")
 
   :fun indent(times USize, msg String) String
     String.join([" " * times, msg])
@@ -93,7 +93,7 @@
   :fun print_failure(env Env) None
     env.err.print(String.join([
       ""
-      @indent(4, String.join(["FAIL:", @pos.string], " "))
+      @indent(4, "FAIL: \(@pos.string)")
       ""
       @indent(4, "Expected to be True")
       ""
@@ -114,11 +114,11 @@
   :fun print_failure(env Env) None
     env.err.print(String.join([
       ""
-      @indent(4, String.join(["FAIL:", @pos.string], " "))
+      @indent(4, "FAIL: \(@pos.string)")
       ""
       @indent(4, "Expected")
       @indent(6, @lhs)
-      @indent(4, String.join(["to ", @op]))
+      @indent(4, "to \(@op)")
       @indent(6, @rhs)
       ""
       @file_and_line
@@ -140,7 +140,7 @@
 
     env.err.print(String.join([
       ""
-      @indent(4, String.join(["FAIL:", @pos.string], " "))
+      @indent(4, "FAIL: \(@pos.string)")
       ""
       @indent(4, String.join([
         "Expected"
@@ -170,7 +170,7 @@
 
     env.err.print(String.join([
       ""
-      @indent(4, String.join(["FAIL:", @pos.string], " "))
+      @indent(4, "FAIL: \(@pos.string)")
       ""
       @indent(4, expectation)
       ""
