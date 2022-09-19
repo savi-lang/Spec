@@ -83,20 +83,20 @@
     try (
       status = @statuses[spec]!.examples[example]!
       status.is_synchronous_portion_ended = True
-      if status.is_ready_to_end @example_ended(spec, example)
+      if status.is_ready_to_end @_example_ended(spec, example)
     |
       _Log.bug(@env, "example_close before the example_began")
     )
 
-  :fun ref example_ended(spec String, example String)
+  :fun ref _example_ended(spec String, example String)
     try (
       status = @statuses[spec]!
       example_status = status.examples[example]!
       example_status.is_ended = True
       example_status._runner.dispose
 
-      skip = example_status.events.size == 0
-      @reporter.example_ended(spec, example, skip)
+      stats = Spec.Statistics.ForExample.from_events(example_status.events)
+      @reporter.example_ended(spec, example, stats)
 
       if (
         status.examples.size >= status.expected_examples
@@ -119,7 +119,7 @@
       status = @statuses[spec]!.examples[example]!
       status.events << event
       @reporter.event(spec, example, event)
-      if status.is_ready_to_end @example_ended(spec, example)
+      if status.is_ready_to_end @_example_ended(spec, example)
     |
       _Log.bug(@env, "assert before the example_began and/or spec_began")
     )

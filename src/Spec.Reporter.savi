@@ -4,7 +4,7 @@
   :fun ref spec_began(spec String): None
   :fun ref spec_ended(spec String): None
   :fun ref example_began(spec String, example String): None
-  :fun ref example_ended(spec String, example String, skip Bool): None
+  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): None
   :fun ref example_timed_ping(spec String, example String): None
   :fun ref example_timed_out(spec String, example String): None
   :fun ref event(spec String, example String, event Spec.Assert): None
@@ -25,11 +25,8 @@
     if event.success (
       @env.err.write(".")
     |
-      @env.err.write("\nFAIL: ")
-      @env.err.write(spec)
-      @env.err.write(" ")
-      @env.err.print(example)
-      @env.err.write("  X "), @env.err.print(event.pos.string)
+      @env.err.print("\nFAIL: \(spec) \(example)")
+      @env.err.print("  X \(event.pos.string)")
     )
 
 :class Spec.Reporter.Full
@@ -48,8 +45,13 @@
     @env.err.write("  ")
     @env.err.write(example)
 
-  :fun ref example_ended(spec String, example String, skip Bool)
-    if skip (@env.err.print(" SKIP") | @env.err.print(" OK"))
+  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
+    msg = case (
+    | stats.failed_events > 0 | "FAIL"
+    | stats.passed_events > 0 | "OK"
+    |                           "SKIP"
+    )
+    @env.err.print(msg)
 
   :fun ref event(spec String, example String, event Spec.Assert)
     if event.success (
@@ -97,7 +99,7 @@
   :fun ref spec_began(spec String): @_changed
   :fun ref spec_ended(spec String): @_changed
   :fun ref example_began(spec String, example String): @_changed
-  :fun ref example_ended(spec String, example String, skip Bool): @_changed
+  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): @_changed
   :fun ref event(spec String, example String, event Spec.Assert): @_changed
 
   :fun ref example_timed_ping(spec String, example String)
@@ -172,9 +174,9 @@
 
       if example_status.is_ended (
         // If the example has finished, but has not yet been reported, report now.
-        if example_status.is_reported.not (
-          skip = example_status.events.size == 0
-          @inner.example_ended(@current_spec, @current_example, skip)
+        if !example_status.is_reported (
+          stats = Spec.Statistics.ForExample.from_events(example_status.events)
+          @inner.example_ended(@current_spec, @current_example, stats)
           example_status.is_reported = True
         )
 
