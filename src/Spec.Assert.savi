@@ -4,9 +4,9 @@
   :let success Bool
   :let pos SourceCodePosition
 
-  :: The print_failure function will print a specific failure message
+  :: The format_failure function will generate a specific failure message
   :: for the different kinds of assertions.
-  :fun print_failure(env Env) None
+  :fun format_failure Array(String): []
 
   :fun non condition(
     caller Spec.Context.Holder
@@ -90,17 +90,15 @@
 
   :new val (@spec, @example, @success, @pos)
 
-  :fun print_failure(env Env) None
-    env.err.print(String.join([
+  :fun format_failure Array(String)
+    [
       ""
       @indent(4, "FAIL: \(@pos.string)")
       ""
       @indent(4, "Expected to be True")
       ""
       @file_and_line
-    ], "\n"))
-
-    None
+    ]
 
 :class val Spec.Assert.Relation
   :is Spec.Assert
@@ -111,8 +109,8 @@
 
   :new val (@spec, @example, @success, @pos, @op, @lhs, @rhs)
 
-  :fun print_failure(env Env) None
-    env.err.print(String.join([
+  :fun format_failure Array(String)
+    [
       ""
       @indent(4, "FAIL: \(@pos.string)")
       ""
@@ -122,9 +120,7 @@
       @indent(6, @rhs)
       ""
       @file_and_line
-    ], "\n"))
-
-    None
+    ]
 
 :class val Spec.Assert.TypeRelation
   :is Spec.Assert
@@ -135,24 +131,16 @@
 
   :new val (@spec, @example, @success, @pos, @op, @lhs, @rhs)
 
-  :fun print_failure(env Env) None
+  :fun format_failure Array(String)
     expectation = if (@op == "<:") ("to be a subtype of" | "not to be a subtype of")
-
-    env.err.print(String.join([
+    [
       ""
       @indent(4, "FAIL: \(@pos.string)")
       ""
-      @indent(4, String.join([
-        "Expected"
-        @lhs
-        expectation
-        @rhs
-      ], " "))
+      @indent(4, "Expected \(@lhs) \(expectation) \(@rhs)")
       ""
       @file_and_line
-    ], "\n"))
-
-    None
+    ]
 
 :class val Spec.Assert.HasError
   :is Spec.Assert
@@ -161,34 +149,28 @@
 
   :new val (@spec, @example, @success, @pos, @expects_error)
 
-  :fun print_failure(env Env) None
+  :fun format_failure Array(String)
     expectation = if @expects_error (
       "Expected to raise an error"
     |
       "Not expected to raise an error"
     )
 
-    env.err.print(String.join([
+    [
       ""
       @indent(4, "FAIL: \(@pos.string)")
       ""
       @indent(4, expectation)
       ""
       @file_and_line
-    ], "\n"))
-
-    None
+    ]
 
 :class val Spec.Assert.WaitForAction
   :is Spec.Assert
   :let action String
   :new val (@spec, @example, @action, @pos): @success = True
-  :fun print_failure(env Env)
-    None
 
 :class val Spec.Assert.FinishedAction
   :is Spec.Assert
   :let action String
   :new val (@spec, @example, @action, @pos): @success = True
-  :fun print_failure(env Env)
-    None

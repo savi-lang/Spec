@@ -55,7 +55,7 @@
     if event.success (
       @env.err.write(".")
     |
-      event.print_failure(@env)
+      @env.err.print(String.join(event.format_failure, "\n"))
     )
 
   :fun ref example_timed_ping(spec String, example String)
