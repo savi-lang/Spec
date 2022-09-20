@@ -3,8 +3,10 @@
 
 :class val Spec.Run(A Spec)
   :is Spec.Run.Any
-  :let env Env
-  :new (@env)
+  :let env Spec.Env
+
+  :new (env Env): @env = Spec.Env.new(env)
+  :new from_spec_env(@env)
 
   // TODO: avoid this indirection
   :fun _new_spec(process) A

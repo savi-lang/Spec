@@ -10,7 +10,7 @@
 
     called = @_example.maybe_call_mutator(spec)
     if called.not (
-      _Log.bug(env, "failed to call a spec feature")
+      env.bug("failed to call a spec feature")
     )
 
     process.example_close(A.describes, @_example.name)

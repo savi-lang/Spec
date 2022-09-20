@@ -4,88 +4,109 @@
   :fun ref spec_began(spec String): None
   :fun ref spec_ended(spec String): None
   :fun ref example_began(spec String, example String): None
-  :fun ref example_ended(spec String, example String, skip Bool): None
+  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): None
   :fun ref example_timed_ping(spec String, example String): None
   :fun ref example_timed_out(spec String, example String): None
   :fun ref event(spec String, example String, event Spec.Assert): None
 
 :class Spec.Reporter.Dots
   :is Spec.Reporter
-  :let env Env
+  :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
   :new (@env, @statuses)
 
   :fun ref spec_ended(spec String)
-    @env.err.write(";")
+    @env.write_err(";")
 
   :fun ref example_began(spec String, example String)
-    @env.err.write(" ")
+    @env.write_err(" ")
 
   :fun ref event(spec String, example String, event Spec.Assert)
     if event.success (
-      @env.err.write(".")
+      @env.write_err(".")
     |
-      @env.err.write("\nFAIL: ")
-      @env.err.write(spec)
-      @env.err.write(" ")
-      @env.err.print(example)
-      @env.err.write("  X "), @env.err.print(event.pos.string)
+      @env.print_err("\nFAIL: \(spec) \(example)")
+      @env.print_err("  X \(event.pos.string)")
     )
 
 :class Spec.Reporter.Full
   :is Spec.Reporter
-  :let env Env
+  :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
+  :let failed_events: Array(Spec.Assert).new
+
   :new (@env, @statuses)
 
   :fun ref spec_began(spec String)
-    @env.err.print(spec)
+    @env.print_err(spec)
 
   :fun ref spec_ended(spec String)
-    @env.err.print("") // just a newline
+    @env.print_err("") // just a newline
 
   :fun ref example_began(spec String, example String)
-    @env.err.write("  ")
-    @env.err.write(example)
+    @env.write_err("  \(example) ")
 
-  :fun ref example_ended(spec String, example String, skip Bool)
-    if skip (@env.err.print(" SKIP") | @env.err.print(" OK"))
+  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
+    msg = case (
+    | stats.failed_events > 0 | @_red("FAIL")
+    | stats.passed_events > 0 | @_green("OK")
+    |                           "SKIP"
+    )
+    @env.print_err(" \(--msg)")
 
-  :fun ref event(spec String, example String, event Spec.Assert)
-    if event.success (
-      @env.err.write(".")
+    @failed_events.each -> (event |
+      @env.print_err(String.join(event.format_failure, "\n"))
+    )
+
+  :var colorize Bool: True
+
+  :fun _red(s String): @_fg_color(s, _FgColor.Red)
+
+  :fun _green(s String): @_fg_color(s, _FgColor.Green)
+
+  :fun _fg_color(s String, color _FgColor): String
+    if @colorize (
+      "\(color.ansi)\(s)\x1b[0m"
     |
-      event.print_failure(@env)
+      --s
+    )
+
+  :fun ref event(spec String, example String, event Spec.Assert) None
+    if event.success (
+      @env.write_err(".")
+    |
+      @env.write_err("F")
+      @failed_events << event
     )
 
   :fun ref example_timed_ping(spec String, example String)
-    try (
-      status = @statuses[spec]!.examples[example]!
-      status.each_waiting_action_event -> (event |
-        @env.out.write("\n    waiting for action: ")
-        @env.out.print(Inspect[event.action])
-        @env.out.print(event.file_and_line)
-      )
-    |
-      _Log.bug(@env, "no status for this example")
-    )
+    @_print_waiting_action_events("waiting for action", spec, example)
 
   :fun ref example_timed_out(spec String, example String)
+    @_print_waiting_action_events("Timed out waiting for action", spec, example)
+
+  :fun _print_waiting_action_events(msg String, spec String, example String)
     try (
       status = @statuses[spec]!.examples[example]!
       status.each_waiting_action_event -> (event |
-        @env.out.write("\n    Timed out waiting for action: ")
-        @env.out.print(Inspect[event.action])
-        @env.out.print(event.file_and_line)
+        @env.print_out("\n    \(msg): \(event.action)\n    \(event.file_and_line)")
       )
     |
-      _Log.bug(@env, "no status for this example")
+      @env.bug("no status for this example")
     )
+
+:enum _FgColor
+  :member Black 30
+  :member Red 31
+  :member Green 32
+
+  :fun ansi String
+    "\x1b[\(@format.decimal)m"
 
 
 :class Spec.Reporter.Linear
   :is Spec.Reporter
-  :let env Env
+  :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
   :let inner Spec.Reporter
   :var current_spec: ""
@@ -97,7 +118,7 @@
   :fun ref spec_began(spec String): @_changed
   :fun ref spec_ended(spec String): @_changed
   :fun ref example_began(spec String, example String): @_changed
-  :fun ref example_ended(spec String, example String, skip Bool): @_changed
+  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): @_changed
   :fun ref event(spec String, example String, event Spec.Assert): @_changed
 
   :fun ref example_timed_ping(spec String, example String)
@@ -152,7 +173,7 @@
         )
       )
     |
-      _Log.bug(@env, "no status for current_spec")
+      @env.bug("no status for current_spec")
       False
     )
 
@@ -172,9 +193,9 @@
 
       if example_status.is_ended (
         // If the example has finished, but has not yet been reported, report now.
-        if example_status.is_reported.not (
-          skip = example_status.events.size == 0
-          @inner.example_ended(@current_spec, @current_example, skip)
+        if !example_status.is_reported (
+          stats = Spec.Statistics.ForExample.from_events(example_status.events)
+          @inner.example_ended(@current_spec, @current_example, stats)
           example_status.is_reported = True
         )
 
@@ -184,7 +205,7 @@
         if @_choose_next_example @_report_examples_from_current
       )
     |
-      _Log.bug(@env, "no status for current_example")
+      @env.bug("no status for current_example")
     )
 
   :fun ref _report_specs_from_current None // TODO: be able to infer return type for maybe-recursive functions
@@ -207,5 +228,5 @@
         if @_choose_next_spec @_report_specs_from_current
       )
     |
-      _Log.bug(@env, "no status for current_spec")
+      @env.bug("no status for current_spec")
     )
