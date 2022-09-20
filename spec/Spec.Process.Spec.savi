@@ -34,7 +34,7 @@
   :be capture_report(err String, out String, exitcode I32)
     assert: exitcode == 0
     assert: out == ""
-    assert: err == "_SpecThatSucceeds\n  succeeds . OK\n\n"
+    assert: err == "_SpecThatSucceeds\n  succeeds . \x1b[32mOK\x1b[30m\n\n"
     @ctx.finished_action("capture.ok")
 
 :class _SpecThatFails
@@ -55,16 +55,18 @@
   :be capture_report(err String, out String, exitcode I32)
     assert: exitcode == 1
     assert: out == ""
-    assert: err == <<<_SpecThatFails
-  fails F FAIL
-
-    FAIL: assert: False
-
-    Expected to be True
-
-    # Spec.Process.Spec.savi: 45
-
->>>
+    assert: err == String.join([
+      "_SpecThatFails"
+      "  fails F \x1b[31mFAIL\x1b[30m"
+      ""
+      "    FAIL: assert: False"
+      ""
+      "    Expected to be True"
+      ""
+      "    # Spec.Process.Spec.savi: 45"
+      ""
+      ""
+    ], "\n")
 
     @ctx.finished_action("capture.fail")
 
