@@ -65,7 +65,7 @@
   :fun _green(s String): @_fg_color(s, _FgColor.Green)
 
   :fun _fg_color(s String, color _FgColor): String
-    if (@colorize) (
+    if @colorize (
       "\(color.ansi)\(s)\x1b[0m"
     |
       --s
