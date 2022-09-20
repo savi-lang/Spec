@@ -80,7 +80,7 @@
 
   :fun file_and_line String
     line = @pos.row + 1
-    @indent(4, "# \(@pos.filename): \(line.format.decimal)")
+    "# \(@pos.filename): \(line.format.decimal)"
 
   :fun indent(times USize, msg String) String
     String.join([" " * times, msg])
@@ -97,7 +97,7 @@
       ""
       @indent(4, "Expected to be True")
       ""
-      @file_and_line
+      @indent(4, @file_and_line)
     ]
 
 :class val Spec.Assert.Relation
@@ -119,7 +119,7 @@
       @indent(4, "to \(@op)")
       @indent(6, @rhs)
       ""
-      @file_and_line
+      @indent(4, @file_and_line)
     ]
 
 :class val Spec.Assert.TypeRelation
@@ -139,7 +139,7 @@
       ""
       @indent(4, "Expected \(@lhs) \(expectation) \(@rhs)")
       ""
-      @file_and_line
+      @indent(4, @file_and_line)
     ]
 
 :class val Spec.Assert.HasError
@@ -162,7 +162,7 @@
       ""
       @indent(4, expectation)
       ""
-      @file_and_line
+      @indent(4, @file_and_line)
     ]
 
 :class val Spec.Assert.WaitForAction

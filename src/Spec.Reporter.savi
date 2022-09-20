@@ -80,24 +80,16 @@
     )
 
   :fun ref example_timed_ping(spec String, example String)
-    try (
-      status = @statuses[spec]!.examples[example]!
-      status.each_waiting_action_event -> (event |
-        @env.write_out("\n    waiting for action: ")
-        @env.print_out(Inspect[event.action])
-        @env.print_out(event.file_and_line)
-      )
-    |
-      @env.bug("no status for this example")
-    )
+    @_print_waiting_action_events("waiting for action", spec, example)
 
   :fun ref example_timed_out(spec String, example String)
+    @_print_waiting_action_events("Timed out waiting for action", spec, example)
+
+  :fun _print_waiting_action_events(msg String, spec String, example String)
     try (
       status = @statuses[spec]!.examples[example]!
       status.each_waiting_action_event -> (event |
-        @env.write_out("\n    Timed out waiting for action: ")
-        @env.print_out(Inspect[event.action])
-        @env.print_out(event.file_and_line)
+        @env.print_out("\n    \(msg): \(event.action)\n    \(event.file_and_line)")
       )
     |
       @env.bug("no status for this example")
