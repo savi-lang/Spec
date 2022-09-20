@@ -104,7 +104,7 @@
       example_status.is_ended = True
       example_status._runner.dispose
 
-      stats = Spec.Statistics.ForExample.from_events(example_status.events)
+      stats = Spec.Statistics.ForExample.from_assertions(example_status.assertions)
       @reporter.example_ended(spec, example, stats)
 
       if (
@@ -117,17 +117,17 @@
       @env.bug("example_ended before the example_began")
     )
 
-  :be enqueue(event Spec.Assert)
-    spec = event.spec
-    example = event.example
+  :be enqueue(assertion Spec.Assert)
+    spec = assertion.spec
+    example = assertion.example
 
     // If it was a failed assertion, mark the entire process as a failure.
-    if !event.success @env.fail
+    if !assertion.success @env.fail
 
     try (
       status = @statuses[spec]!.examples[example]!
-      status.events << event
-      @reporter.event(spec, example, event)
+      status.assertions << assertion
+      @reporter.assertion(spec, example, assertion)
       if status.is_ready_to_end @_example_ended(spec, example)
     |
       @env.bug("assert before the example_began and/or spec_began")
