@@ -80,7 +80,7 @@
 
   :fun file_and_line String
     line = @pos.row + 1
-    "# \(@pos.filename): \(line.format.decimal)"
+    "# \(@pos.filepath_rootpkgrel): \(line.format.decimal)"
 
   :fun indent(times USize, msg String) String
     String.join([" " * times, msg])

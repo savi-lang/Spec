@@ -63,7 +63,7 @@
       ""
       "    Expected to be True"
       ""
-      "    # Spec.Process.Spec.savi: 45"
+      "    # spec/Spec.Process.Spec.savi: 45"
       ""
       ""
     ], "\n")
