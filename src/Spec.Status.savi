@@ -9,8 +9,8 @@
 :class Spec.Status.ForExample
   :let name String
   :let _runner _Runner.Any
-  :let events: Array(Spec.Assert).new
-  :var events_reported USize: 0
+  :let assertions: Array(Spec.Assert).new
+  :var assertions_reported USize: 0
   :var is_synchronous_portion_ended Bool: False
   :var is_ended Bool: False
   :var is_reported Bool: False
@@ -24,14 +24,14 @@
 
   :fun _waiting_action_counts
     counts = Map(String, I32).new
-    @events.each -> (event |
-      case event <: (
+    @assertions.each -> (assertion |
+      case assertion <: (
       | Spec.Assert.WaitForAction |
         // TODO: A more streamlined method in Map for doing this "upsert":
-        counts[event.action] = try (counts[event.action]! + 1 | 1)
+        counts[assertion.action] = try (counts[assertion.action]! + 1 | 1)
       | Spec.Assert.FinishedAction |
         // TODO: A more streamlined method in Map for doing this "upsert":
-        counts[event.action] = try (counts[event.action]! - 1 | -1)
+        counts[assertion.action] = try (counts[assertion.action]! - 1 | -1)
       )
     )
     counts
@@ -39,18 +39,18 @@
   :fun has_any_waiting_actions
     @_waiting_action_counts.has_any -> (action, count | count > 0)
 
-  :fun each_waiting_action_event
+  :fun each_waiting_action_assertion
     :yields Spec.Assert.WaitForAction for None
     counts = @_waiting_action_counts
     counts.each -> (action, count |
       next if (count <= 0)
 
       yielded_count = 0
-      @events.reverse_each -> (event |
-        if (event <: Spec.Assert.WaitForAction) (
-          next unless (event.action == action)
+      @assertions.reverse_each -> (assertion |
+        if (assertion <: Spec.Assert.WaitForAction) (
+          next unless (assertion.action == action)
 
-          yield event
+          yield assertion
 
           yielded_count += 1
           break if (yielded_count == count)

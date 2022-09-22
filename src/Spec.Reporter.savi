@@ -7,7 +7,7 @@
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): None
   :fun ref example_timed_ping(spec String, example String): None
   :fun ref example_timed_out(spec String, example String): None
-  :fun ref event(spec String, example String, event Spec.Assert): None
+  :fun ref assertion(spec String, example String, assertion Spec.Assert): None
 
 :class Spec.Reporter.Dots
   :is Spec.Reporter
@@ -21,19 +21,19 @@
   :fun ref example_began(spec String, example String)
     @env.write_err(" ")
 
-  :fun ref event(spec String, example String, event Spec.Assert)
-    if event.success (
+  :fun ref assertion(spec String, example String, assertion Spec.Assert)
+    if assertion.success (
       @env.write_err(".")
     |
       @env.print_err("\nFAIL: \(spec) \(example)")
-      @env.print_err("  X \(event.pos.string)")
+      @env.print_err("  X \(assertion.pos.string)")
     )
 
 :class Spec.Reporter.Full
   :is Spec.Reporter
   :let env Spec.Env
   :let statuses Map.Ordered(String, Spec.Status)
-  :let failed_events: Array(Spec.Assert).new
+  :let failed_assertions: Array(Spec.Assert).new
 
   :new (@env, @statuses)
 
@@ -48,14 +48,14 @@
 
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
     msg = case (
-    | stats.failed_events > 0 | @_red("FAIL")
-    | stats.passed_events > 0 | @_green("OK")
+    | stats.failed_assertions > 0 | @_red("FAIL")
+    | stats.passed_assertions > 0 | @_green("OK")
     |                           "SKIP"
     )
     @env.print_err(" \(--msg)")
 
-    @failed_events.each -> (event |
-      @env.print_err(String.join(event.format_failure, "\n"))
+    @failed_assertions.each -> (assertion |
+      @env.print_err(String.join(assertion.format_failure, "\n"))
     )
 
   :var colorize Bool: True
@@ -71,25 +71,25 @@
       --s
     )
 
-  :fun ref event(spec String, example String, event Spec.Assert) None
-    if event.success (
+  :fun ref assertion(spec String, example String, assertion Spec.Assert) None
+    if assertion.success (
       @env.write_err(".")
     |
       @env.write_err("F")
-      @failed_events << event
+      @failed_assertions << assertion
     )
 
   :fun ref example_timed_ping(spec String, example String)
-    @_print_waiting_action_events("waiting for action", spec, example)
+    @_print_waiting_action_assertions("waiting for action", spec, example)
 
   :fun ref example_timed_out(spec String, example String)
-    @_print_waiting_action_events("Timed out waiting for action", spec, example)
+    @_print_waiting_action_assertions("Timed out waiting for action", spec, example)
 
-  :fun _print_waiting_action_events(msg String, spec String, example String)
+  :fun _print_waiting_action_assertions(msg String, spec String, example String)
     try (
       status = @statuses[spec]!.examples[example]!
-      status.each_waiting_action_event -> (event |
-        @env.print_out("\n    \(msg): \(event.action)\n    \(event.file_and_line)")
+      status.each_waiting_action_assertion -> (assertion |
+        @env.print_out("\n    \(msg): \(assertion.action)\n    \(assertion.file_and_line)")
       )
     |
       @env.bug("no status for this example")
@@ -119,7 +119,7 @@
   :fun ref spec_ended(spec String): @_changed
   :fun ref example_began(spec String, example String): @_changed
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): @_changed
-  :fun ref event(spec String, example String, event Spec.Assert): @_changed
+  :fun ref assertion(spec String, example String, assertion Spec.Assert): @_changed
 
   :fun ref example_timed_ping(spec String, example String)
     @_changed
@@ -141,7 +141,7 @@
     // Now report on the selected example and spec. This has to be done in this
     // order, since examples in the spec need to be reported before reporting
     // the end of the spec. Both of these functions are potentially recursive,
-    // in the event that the example or spec is finished and we need to pick
+    // in the assertion that the example or spec is finished and we need to pick
     // new ones to continue reporting more about changes to the statuses.
     if @current_example.is_not_empty @_report_examples_from_current
     if @current_spec   .is_not_empty @_report_specs_from_current
@@ -181,20 +181,20 @@
     try (
       example_status = @statuses[@current_spec]!.examples[@current_example]!
 
-      // Any events that have arrived for this example, but have not yet
+      // Any assertions that have arrived for this example, but have not yet
       // been reported should be reported now, tracking how many we've done.
-      while (example_status.events_reported < example_status.events.size) (
+      while (example_status.assertions_reported < example_status.assertions.size) (
         try (
-          event = example_status.events[example_status.events_reported]!
-          @inner.event(@current_spec, @current_example, event)
+          assertion = example_status.assertions[example_status.assertions_reported]!
+          @inner.assertion(@current_spec, @current_example, assertion)
         )
-        example_status.events_reported += 1
+        example_status.assertions_reported += 1
       )
 
       if example_status.is_ended (
         // If the example has finished, but has not yet been reported, report now.
         if !example_status.is_reported (
-          stats = Spec.Statistics.ForExample.from_events(example_status.events)
+          stats = Spec.Statistics.ForExample.from_assertions(example_status.assertions)
           @inner.example_ended(@current_spec, @current_example, stats)
           example_status.is_reported = True
         )

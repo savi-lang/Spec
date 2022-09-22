@@ -1,23 +1,21 @@
 :struct Spec.Statistics.ForExample
-  :let total_events USize
-  :let failed_events USize
-  :let passed_events USize 
+  :let total_assertions USize
+  :let failed_assertions USize
+  :let passed_assertions USize
 
-  :new(@total_events, @failed_events, @passed_events)
+  :new(@total_assertions, @failed_assertions, @passed_assertions)
 
-  :new from_events(events Array(Spec.Assert))
-    @total_events = events.size
-    passed_events = 0  
-    failed_events = 0
-    events.each -> (event |
-      if event.success (
-        passed_events = passed_events + 1
+  :new from_assertions(assertions Array(Spec.Assert))
+    @total_assertions = assertions.size
+    passed_assertions = 0
+    failed_assertions = 0
+    assertions.each -> (assertion |
+      if assertion.success (
+        passed_assertions = passed_assertions + 1
       |
-        failed_events = failed_events + 1
+        failed_assertions = failed_assertions + 1
       )
     )
-    @passed_events = passed_events
-    @failed_events = failed_events
-
-
+    @passed_assertions = passed_assertions
+    @failed_assertions = failed_assertions
 
