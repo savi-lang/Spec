@@ -12,6 +12,7 @@
     @reporter = Spec.Reporter.Linear.new(@env, @statuses
       Spec.Reporter.Full.new(@env, @statuses)
     )
+    @overall_began
 
   :fun non _run(env Spec.Env, runners Array(Spec.Run.Any)) // TODO: shouldn't need this indirection
     process = @_new(env, runners.size)
@@ -52,6 +53,7 @@
     status.expected_examples = expected_examples
     @statuses[spec] = status
     @reporter.spec_began(spec)
+
 
   :fun ref overall_began
     @reporter.overall_began
