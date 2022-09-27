@@ -36,7 +36,6 @@
   :let failed_assertions: Array(Spec.Assert).new
 
   :var _overall_began U64: 0
-  :var _num_total_examples USize: 0
   :var _num_total_assertions USize: 0
   :var _num_failed_assertions USize: 0
 
@@ -69,7 +68,6 @@
     @env.write_err("  \(example) ")
 
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
-    @_num_total_examples = @_num_total_examples + 1
     @_num_total_assertions = @_num_total_assertions + stats.total_assertions
     @_num_failed_assertions = @_num_failed_assertions + stats.failed_assertions
 
