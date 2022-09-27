@@ -35,6 +35,10 @@
   :let statuses Map.Ordered(String, Spec.Status)
   :let failed_assertions: Array(Spec.Assert).new
 
+  :var _overall_began U64: 0
+  :var _num_total_assertions USize: 0
+  :var _num_failed_assertions USize: 0
+
   :new (@env, @statuses)
 
   :fun ref spec_began(spec String)
@@ -43,14 +47,34 @@
   :fun ref spec_ended(spec String)
     @env.print_err("") // just a newline
 
+  :fun ref overall_began
+    @_overall_began = Time.Measure.current_milliseconds
+    None
+
+  :fun ref overall_ended
+    elapsed_s = (Time.Measure.current_milliseconds - @_overall_began) / 1000
+
+    msg = case (
+    | @_num_failed_assertions > 0 | @_red("FAIL")
+    |                               @_green("OK")
+    )
+    num_passed = @_num_total_assertions - @_num_failed_assertions
+
+    @env.print_err("test result: \(--msg). \(num_passed) passed; \(@_num_failed_assertions) failed; finished in \(elapsed_s.format.decimal)s")
+    None
+
   :fun ref example_began(spec String, example String)
+    @failed_assertions.clear
     @env.write_err("  \(example) ")
 
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
+    @_num_total_assertions = @_num_total_assertions + stats.total_assertions
+    @_num_failed_assertions = @_num_failed_assertions + stats.failed_assertions
+
     msg = case (
     | stats.failed_assertions > 0 | @_red("FAIL")
     | stats.passed_assertions > 0 | @_green("OK")
-    |                           "SKIP"
+    |                               "SKIP"
     )
     @env.print_err(" \(--msg)")
 
@@ -60,11 +84,11 @@
 
   :var colorize Bool: True
 
-  :fun _red(s String): @_fg_color(s, _FgColor.Red)
+  :fun _red(s String'val): @_fg_color(s, _FgColor.Red)
 
-  :fun _green(s String): @_fg_color(s, _FgColor.Green)
+  :fun _green(s String'val): @_fg_color(s, _FgColor.Green)
 
-  :fun _fg_color(s String, color _FgColor): String
+  :fun _fg_color(s String'val, color _FgColor): String
     if @colorize (
       "\(color.ansi)\(s)\x1b[0m"
     |
