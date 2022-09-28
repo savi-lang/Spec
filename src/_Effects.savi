@@ -1,0 +1,72 @@
+:: This trait encompasses all of the effects that the Spec library itself
+:: may emit into the outside world: namely, setting the exit code and printing.
+:trait val _Effects
+  :: Mark the entire process as a failure.
+  :fun val fail @
+
+  :: Print a bug message and mark the entire process as a failure.
+  :fun val bug(text String) @
+    @write_err("You've encountered a bug in the spec package: \(text)\n")
+    @fail
+
+  :: Write a string to stderr.
+  :fun val write_err(data String) @
+
+  :: Print a string to stderr.
+  :fun val print_err(data String) @: @write_err("\(data)\n")
+
+  :: Write a string to stdout.
+  :fun val write_out(data String) @
+
+  :: Print a string to stdout.
+  :fun val print_out(data String) @: @write_out("\(data)\n")
+
+  :: Signal that all effects have finished being emitted.
+  :fun val done @
+
+:: Implement the `_Effects` trait by directly emitting to the actual `Env`.
+:: This is the implementation that is used when really running specs.
+:class val _Effects.Direct
+  :is _Effects
+  :let env Env
+  :new val (@env)
+
+  :fun val fail: @env.exit_code = 1, @
+  :fun val write_err(data): @env.err.write(data), @
+  :fun val write_out(data): @env.out.write(data), @
+  :fun val done: @
+
+:: Implement the `_Effects` trait by capturing the effects for later analysis.
+:: This is the implementation that is used when the `Spec` library tests itself.
+:actor val _Effects.Capture
+  :is _Effects
+  :let actor _Effects.Capture.Actor
+  :new val (notify): @actor = _Effects.Capture.Actor.new(notify)
+
+  :fun val fail: @actor.exit_code = 1, @
+  :fun val write_err(data): @actor.write_err(data), @
+  :fun val write_out(data): @actor.write_out(data), @
+  :fun val done: @actor.report, @
+
+:actor val _Effects.Capture.Actor
+  :let _err Array(String): []
+  :let _out Array(String): []
+  :var _exit_code I32: 0
+  :let notify _Effects.Capture.Notify
+
+  :new (@notify)
+
+  :be write_err(data String): @_err << data
+  :be write_out(data String): @_out << data
+  :be "exit_code="(value): @_exit_code = value
+
+  :be report
+    @notify.capture_report(
+      String.join(@_err, "")
+      String.join(@_out, "")
+      @_exit_code
+    )
+
+:trait tag _Effects.Capture.Notify
+  :be capture_report(err String, out String, exit_code I32)
+

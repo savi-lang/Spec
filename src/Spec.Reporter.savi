@@ -1,37 +1,40 @@
 :trait Spec.Reporter
-  :fun ref overall_began: None
-  :fun ref overall_ended: None
-  :fun ref spec_began(spec String): None
-  :fun ref spec_ended(spec String): None
-  :fun ref example_began(spec String, example String): None
-  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): None
-  :fun ref example_timed_ping(spec String, example String): None
-  :fun ref example_timed_out(spec String, example String): None
-  :fun ref assertion(spec String, example String, assertion Spec.Assert): None
+  :fun ref overall_began: @
+  :fun ref overall_ended: @
+  :fun ref spec_began(spec String): @
+  :fun ref spec_ended(spec String): @
+  :fun ref example_began(spec String, example String): @
+  :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample): @
+  :fun ref example_timed_ping(spec String, example String): @
+  :fun ref example_timed_out(spec String, example String): @
+  :fun ref assertion(spec String, example String, assertion Spec.Assert): @
 
 :class Spec.Reporter.Dots
   :is Spec.Reporter
-  :let env Spec.Env
+  :let _effects _Effects
   :let statuses Map.Ordered(String, Spec.Status)
-  :new (@env, @statuses)
+  :new (@_effects, @statuses)
 
   :fun ref spec_ended(spec String)
-    @env.write_err(";")
+    @_effects.write_err(";")
+    @
 
   :fun ref example_began(spec String, example String)
-    @env.write_err(" ")
+    @_effects.write_err(" ")
+    @
 
   :fun ref assertion(spec String, example String, assertion Spec.Assert)
     if assertion.success (
-      @env.write_err(".")
+      @_effects.write_err(".")
     |
-      @env.print_err("\nFAIL: \(spec) \(example)")
-      @env.print_err("  X \(assertion.pos.string)")
+      @_effects.print_err("\nFAIL: \(spec) \(example)")
+      @_effects.print_err("  X \(assertion.pos.string)")
     )
+    @
 
 :class Spec.Reporter.Full
   :is Spec.Reporter
-  :let env Spec.Env
+  :let _effects _Effects
   :let statuses Map.Ordered(String, Spec.Status)
   :let failed_assertions: Array(Spec.Assert).new
 
@@ -39,17 +42,19 @@
   :var _num_total_assertions USize: 0
   :var _num_failed_assertions USize: 0
 
-  :new (@env, @statuses)
+  :new (@_effects, @statuses)
 
   :fun ref spec_began(spec String)
-    @env.print_err(spec)
+    @_effects.print_err(spec)
+    @
 
   :fun ref spec_ended(spec String)
-    @env.print_err("") // just a newline
+    @_effects.print_err("") // just a newline
+    @
 
   :fun ref overall_began
     @_overall_began = Time.Measure.current_milliseconds
-    None
+    @
 
   :fun ref overall_ended
     elapsed_s = (Time.Measure.current_milliseconds - @_overall_began) / 1000
@@ -60,12 +65,13 @@
     )
     num_passed = @_num_total_assertions - @_num_failed_assertions
 
-    @env.print_err("test result: \(--msg). \(num_passed) passed; \(@_num_failed_assertions) failed; finished in \(elapsed_s.format.decimal)s")
-    None
+    @_effects.print_err("test result: \(--msg). \(num_passed) passed; \(@_num_failed_assertions) failed; finished in \(elapsed_s.format.decimal)s")
+    @
 
   :fun ref example_began(spec String, example String)
     @failed_assertions.clear
-    @env.write_err("  \(example) ")
+    @_effects.write_err("  \(example) ")
+    @
 
   :fun ref example_ended(spec String, example String, stats Spec.Statistics.ForExample)
     @_num_total_assertions = @_num_total_assertions + stats.total_assertions
@@ -76,11 +82,12 @@
     | stats.passed_assertions > 0 | @_green("OK")
     |                               "SKIP"
     )
-    @env.print_err(" \(--msg)")
+    @_effects.print_err(" \(--msg)")
 
     @failed_assertions.each -> (assertion |
-      @env.print_err(String.join(assertion.format_failure, "\n"))
+      @_effects.print_err(String.join(assertion.format_failure, "\n"))
     )
+    @
 
   :var colorize Bool: True
 
@@ -95,29 +102,33 @@
       --s
     )
 
-  :fun ref assertion(spec String, example String, assertion Spec.Assert) None
+  :fun ref assertion(spec String, example String, assertion Spec.Assert)
     if assertion.success (
-      @env.write_err(".")
+      @_effects.write_err(".")
     |
-      @env.write_err("F")
+      @_effects.write_err("F")
       @failed_assertions << assertion
     )
+    @
 
   :fun ref example_timed_ping(spec String, example String)
     @_print_waiting_action_assertions("waiting for action", spec, example)
+    @
 
   :fun ref example_timed_out(spec String, example String)
     @_print_waiting_action_assertions("Timed out waiting for action", spec, example)
+    @
 
   :fun _print_waiting_action_assertions(msg String, spec String, example String)
     try (
       status = @statuses[spec]!.examples[example]!
       status.each_waiting_action_assertion -> (assertion |
-        @env.print_out("\n    \(msg): \(assertion.action)\n    \(assertion.file_and_line)")
+        @_effects.print_out("\n    \(msg): \(assertion.action)\n    \(assertion.file_and_line)")
       )
     |
-      @env.bug("no status for this example")
+      @_effects.bug("no status for this example")
     )
+    @
 
 :enum _FgColor
   :member Black 30
@@ -130,12 +141,12 @@
 
 :class Spec.Reporter.Linear
   :is Spec.Reporter
-  :let env Spec.Env
+  :let _effects _Effects
   :let statuses Map.Ordered(String, Spec.Status)
   :let inner Spec.Reporter
   :var current_spec: ""
   :var current_example: ""
-  :new (@env, @statuses, @inner)
+  :new (@_effects, @statuses, @inner)
 
   :fun ref overall_began: @inner.overall_began
   :fun ref overall_ended: @inner.overall_ended
@@ -147,17 +158,19 @@
 
   :fun ref example_timed_ping(spec String, example String)
     @_changed
-    return unless (spec == @current_spec)
-    return unless (example == @current_example)
+    return @ unless (spec == @current_spec)
+    return @ unless (example == @current_example)
     @inner.example_timed_ping(spec, example)
+    @
 
   :fun ref example_timed_out(spec String, example String)
     @_changed
-    return unless (spec == @current_spec)
-    return unless (example == @current_example)
+    return @ unless (spec == @current_spec)
+    return @ unless (example == @current_example)
     @inner.example_timed_out(spec, example)
+    @
 
-  :fun ref _changed None // TODO: be able to infer return type for maybe-recursive functions
+  :fun ref _changed
     // If no spec and example are selected for linear reporting, pick them now.
     if @current_spec   .is_empty @_choose_next_spec
     if @current_example.is_empty @_choose_next_example
@@ -169,6 +182,8 @@
     // new ones to continue reporting more about changes to the statuses.
     if @current_example.is_not_empty @_report_examples_from_current
     if @current_spec   .is_not_empty @_report_specs_from_current
+
+    @
 
   :fun ref _choose_next_spec Bool
     // Find the name of the first spec whose status is not yet reported.
@@ -197,7 +212,7 @@
         )
       )
     |
-      @env.bug("no status for current_spec")
+      @_effects.bug("no status for current_spec")
       False
     )
 
@@ -229,7 +244,7 @@
         if @_choose_next_example @_report_examples_from_current
       )
     |
-      @env.bug("no status for current_example")
+      @_effects.bug("no status for current_example")
     )
 
   :fun ref _report_specs_from_current None // TODO: be able to infer return type for maybe-recursive functions
@@ -252,5 +267,5 @@
         if @_choose_next_spec @_report_specs_from_current
       )
     |
-      @env.bug("no status for current_spec")
+      @_effects.bug("no status for current_spec")
     )
