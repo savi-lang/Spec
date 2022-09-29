@@ -4,16 +4,18 @@
 
   :it "runs a spec that succeeds generates output"
     @ctx.wait_for_action("capture.ok")
-    env = Spec.Env.capture(_SpecThatSucceeds.Capturer.new(@ctx))
-    process = Spec.Process.run(env, [
-      Spec.Run(_SpecThatSucceeds).from_spec_env(env)
+
+    capture = _Effects.Capture.new(_SpecThatSucceeds.Capturer.new(@ctx))
+    process = Spec.Process.run_with_capture(capture, [
+      Spec.Run(_SpecThatSucceeds).with_capture(@env, capture)
     ])
 
   :it "runs a spec that fails and generates output"
     @ctx.wait_for_action("capture.fail")
-    env = Spec.Env.capture(_SpecThatFails.Capturer.new(@ctx))
-    process = Spec.Process.run(env, [
-      Spec.Run(_SpecThatFails).from_spec_env(env)
+
+    capture = _Effects.Capture.new(_SpecThatFails.Capturer.new(@ctx))
+    process = Spec.Process.run_with_capture(capture, [
+      Spec.Run(_SpecThatFails).with_capture(@env, capture)
     ])
 
 
@@ -25,7 +27,7 @@
     assert: True
 
 :actor _SpecThatSucceeds.Capturer
-  :is Spec.Env.Capture.Notify
+  :is _Effects.Capture.Notify
   :is Spec.Context.Holder
 
   :let ctx Spec.Context
@@ -53,7 +55,7 @@
 
 
 :actor _SpecThatFails.Capturer
-  :is Spec.Env.Capture.Notify
+  :is _Effects.Capture.Notify
   :is Spec.Context.Holder
 
   :let ctx Spec.Context
@@ -70,7 +72,7 @@
       ""
       "    Expected to be True"
       ""
-      "    # spec/Spec.Process.Spec.savi: 52"
+      "    # spec/Spec.Process.Spec.savi: 54"
       ""
       "test result: \x1b[31mFAIL\x1b[0m. 0 passed; 1 failed; finished in 0s"
       ""

@@ -3,14 +3,22 @@
 
 :class val Spec.Run(A Spec)
   :is Spec.Run.Any
-  :let env Spec.Env
+  :let env Env
+  :let _effects _Effects
 
-  :new (env Env): @env = Spec.Env.new(env)
-  :new from_spec_env(@env)
+  :new val (@env)
+    @_effects = _Effects.Direct.new(@env)
+
+  :new val with_capture(@env, effects _Effects.Capture)
+    @_effects = effects
 
   // TODO: avoid this indirection
   :fun _new_spec(process) A
-    A.new(Spec.Context.new(@env, A.describes, "", process, _Runner.None.new))
+    A.new(
+      Spec.Context.new(
+        @env, A.describes, "", @_effects, process, _Runner.None.new
+      )
+    )
 
   :: Run all spec features for the Spec type indicated by the type argument,
   :: using the given Env to construct an instance of that Spec type.
@@ -26,5 +34,5 @@
     process.spec_began(A.describes, features.size)
 
     features.each -> (feature |
-      _Runner(A).new(@env, process, feature)
+      _Runner(A).new(@env, @_effects, process, feature)
     )

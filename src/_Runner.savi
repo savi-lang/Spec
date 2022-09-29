@@ -2,15 +2,16 @@
   :is _Runner.Any
   :let _example ReflectionFeatureOfType(A)
 
-  :new (env, process, @_example)
-    helper = Spec.Context.new(env, A.describes, @_example.name, process, @)
-    spec = A.new(helper)
+  :new (env, effects, process, @_example)
+    spec = A.new(
+      Spec.Context.new(env, A.describes, @_example.name, effects, process, @)
+    )
 
     process.example_began(A.describes, @_example.name, @)
 
     called = @_example.maybe_call_mutator(spec)
     if called.not (
-      env.bug("failed to call a spec feature")
+      effects.bug("failed to call a spec feature")
     )
 
     process.example_close(A.describes, @_example.name)
