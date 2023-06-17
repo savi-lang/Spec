@@ -11,7 +11,7 @@
 
   :fun ref timer_react @
     @elapsed_seconds += @process.timed_ping_seconds
-    if (@elapsed_seconds < @process.timeout_seconds) (
+    if @elapsed_seconds < @process.timeout_seconds (
       @process._timed_ping
     |
       @process._timed_out

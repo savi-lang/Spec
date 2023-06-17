@@ -75,7 +75,7 @@
       @reporter.spec_ended(spec)
 
       // If now all specs have ended, then we know we've ended overall.
-      if (@statuses.has_all -> (_, s | s.is_ended)) @overall_ended
+      if @statuses.has_all -> (_, s | s.is_ended) @overall_ended
     |
       @_effects.bug("spec_ended before the spec_began")
     )
