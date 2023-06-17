@@ -158,15 +158,15 @@
 
   :fun ref example_timed_ping(spec String, example String)
     @_changed
-    return @ unless (spec == @current_spec)
-    return @ unless (example == @current_example)
+    return @ unless spec == @current_spec
+    return @ unless example == @current_example
     @inner.example_timed_ping(spec, example)
     @
 
   :fun ref example_timed_out(spec String, example String)
     @_changed
-    return @ unless (spec == @current_spec)
-    return @ unless (example == @current_example)
+    return @ unless spec == @current_spec
+    return @ unless example == @current_example
     @inner.example_timed_out(spec, example)
     @
 
@@ -188,7 +188,7 @@
   :fun ref _choose_next_spec Bool
     // Find the name of the first spec whose status is not yet reported.
     @statuses.each_until -> (spec, status |
-      if (status.is_reported.not) (
+      if status.is_reported.not (
         @current_spec = spec
         @current_example = ""
         @inner.spec_began(@current_spec)
@@ -222,7 +222,7 @@
 
       // Any assertions that have arrived for this example, but have not yet
       // been reported should be reported now, tracking how many we've done.
-      while (example_status.assertions_reported < example_status.assertions.size) (
+      while example_status.assertions_reported < example_status.assertions.size (
         try (
           assertion = example_status.assertions[example_status.assertions_reported]!
           @inner.assertion(@current_spec, @current_example, assertion)
@@ -252,7 +252,7 @@
       status = @statuses[@current_spec]!
 
       // If the spec is finished, but we haven't reported, report it now.
-      if (status.is_ended && status.is_reported.not) (
+      if status.is_ended && status.is_reported.not (
         // Try to find an example not yet reported, and report it.
         // This call will recurse until all examples in the spec are reported.
         if @_choose_next_example @_report_examples_from_current

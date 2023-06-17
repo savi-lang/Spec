@@ -132,7 +132,7 @@
   :new val (@spec, @example, @success, @pos, @op, @lhs, @rhs)
 
   :fun format_failure Array(String)
-    expectation = if (@op == "<:") ("to be a subtype of" | "not to be a subtype of")
+    expectation = if @op == "<:" ("to be a subtype of" | "not to be a subtype of")
     [
       ""
       @indent(4, "FAIL: \(@pos.string)")
