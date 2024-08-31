@@ -187,34 +187,31 @@
 
   :fun ref _choose_next_spec Bool
     // Find the name of the first spec whose status is not yet reported.
-    @statuses.each_until -> (spec, status |
+    @statuses.each -> (spec, status |
       if status.is_reported.not (
         @current_spec = spec
         @current_example = ""
         @inner.spec_began(@current_spec)
-        True
-      |
-        False
+        return True
       )
     )
+    False
 
   :fun ref _choose_next_example Bool
     // Find the name of the first example in this spec that is not yet reported.
     try (
       status = @statuses[@current_spec]!
-      status.examples.each_until -> (example, example_status |
+      status.examples.each -> (example, example_status |
         if example_status.is_reported.not (
           @current_example = example
           @inner.example_began(@current_spec, @current_example)
-          True
-        |
-          False
+          return True
         )
       )
     |
       @_effects.bug("no status for current_spec")
-      False
     )
+    False
 
   :fun ref _report_examples_from_current None // TODO: be able to infer return type for maybe-recursive functions
     try (
